@@ -50,7 +50,64 @@ fn part1(input: String, y: i64) -> u64 {
     return sum.try_into().unwrap();
 }
 
-fn part2(input: String, max_bounds: u64) -> u64 {
+fn part2(input: String, max_bounds: i64) -> i64 {
+    let re =
+        Regex::new(r"Sensor at x=(-?\d+), y=(-?\d+): closest beacon is at x=(-?\d+), y=(-?\d+)")
+            .unwrap();
+    let mut beacons = Vec::new();
+    for row in input.trim().lines() {
+        if row.len() == 0 {
+            continue;
+        }
+        let cap = re.captures(row.trim()).unwrap();
+        let s = (
+            cap[1].parse::<i64>().unwrap(),
+            cap[2].parse::<i64>().unwrap(),
+        );
+        let b = (
+            cap[3].parse::<i64>().unwrap(),
+            cap[4].parse::<i64>().unwrap(),
+        );
+        let dist = (s.0 - b.0).abs() + (s.1 - b.1).abs();
+
+        beacons.push((s, b, dist));
+    }
+
+    println!("{:?}", beacons);
+
+    for y in 0..max_bounds {
+        if y % 100000 == 0 {
+            println!("{}", y);
+        }
+        let mut ranges = Vec::new();
+        for (s, b, dist) in &beacons {
+            // distance from sensor to y
+            let offset = dist - (y - s.1).abs();
+            if offset < 0 {
+                // println!("Skipping sensor due to distance from y {}", offset);
+                continue;
+            }
+            let range = (s.0 - offset, s.0 + offset);
+            // println!("Offset: {} Range: {:?}", offset, range);
+            ranges.push(range);
+        }
+        ranges.sort();
+        let mut curr = 0;
+        for range in ranges {
+            if curr > max_bounds {
+                break;
+            }
+            if range.1 <= curr {
+                continue;
+            }
+            if range.0 > curr {
+                // gap found
+                return (curr + 1) * 4000000 + y;
+            }
+            curr = range.1;
+        }
+    }
+
     return 0;
 }
 
@@ -81,7 +138,7 @@ mod tests {
     Sensor at x=14, y=3: closest beacon is at x=15, y=3
     Sensor at x=20, y=1: closest beacon is at x=15, y=3
     ";
-    // #[test]
+    #[test]
     fn example1() {
         let input = TEST_INPUT.to_string();
         assert_eq!(part1(input, 10), 26);
